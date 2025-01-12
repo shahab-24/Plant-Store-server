@@ -34,7 +34,7 @@ const verifyToken = async (req, res, next) => {
     req.user = decoded
     next()
   })
-}node
+}
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.3jtn0.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`
 
