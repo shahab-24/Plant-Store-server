@@ -2,7 +2,7 @@ require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
 const cookieParser = require('cookie-parser')
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb')
+const { MongoClient, ServerApiVersion, ObjectId, Timestamp } = require('mongodb')
 const jwt = require('jsonwebtoken')
 const morgan = require('morgan')
 
@@ -48,10 +48,35 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 })
+
 async function run() {
   try {
+    const plantUserCollection = client.db('plantStore').collection('plant-user')
+    const plantsCollection = client.db('plantStore').collection('plants')
+
+
+    app.post('/users/:email',async(req,res) => {
+        const email = req.params.email;
+
+        // to query by email
+        const query = {email}
+
+        // take user from body
+        const user = req.body
+        const isExist = await plantUserCollection.findOne(query)
+        if(isExist){
+            return res.send('user exist')
+        }
+        const result = await plantUserCollection.insertOne({
+            ...user, 
+            role: 'customer',
+            Timestamp: Date.now()
+        }
+        )
+        res.send(result)
+    })
     // Generate jwt token
-    app.post('/jwt', async (req, res) => {
+    app.post('/jwt',async (req, res) => {
       const email = req.body
       const token = jwt.sign(email, process.env.ACCESS_TOKEN_SECRET, {
         expiresIn: '365d',
@@ -64,6 +89,8 @@ async function run() {
         })
         .send({ success: true })
     })
+
+    
     // Logout
     app.get('/logout', async (req, res) => {
       try {
@@ -80,10 +107,10 @@ async function run() {
     })
 
     // Send a ping to confirm a successful connection
-    await client.db('admin').command({ ping: 1 })
-    console.log(
-      'Pinged your deployment. You successfully connected to MongoDB!'
-    )
+    // await client.db('admin').command({ ping: 1 })
+    // console.log(
+    //   'Pinged your deployment. You successfully connected to MongoDB!'
+    // )
   } finally {
     // Ensures that the client will close when you finish/error
   }
