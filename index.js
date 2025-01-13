@@ -75,6 +75,17 @@ async function run() {
         )
         res.send(result)
     })
+
+    app.post('/plants', verifyToken, async (req,res) => {
+        const plants = req.body;
+        const result = await plantsCollection.insertOne(plants)
+        res.send(result)
+    })
+    app.get('/plants', async (req,res) => {
+        
+        const result = await plantsCollection.find().toArray()
+        res.send(result)
+    })
     // Generate jwt token
     app.post('/jwt',async (req, res) => {
       const email = req.body
