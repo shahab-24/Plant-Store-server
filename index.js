@@ -76,16 +76,28 @@ async function run() {
         res.send(result)
     })
 
+
+    // post plants
     app.post('/plants', verifyToken, async (req,res) => {
         const plants = req.body;
         const result = await plantsCollection.insertOne(plants)
         res.send(result)
     })
+
+    // get all plants
     app.get('/plants', async (req,res) => {
-        
         const result = await plantsCollection.find().toArray()
         res.send(result)
     })
+
+
+    // get a plant by id
+app.get('/plants/:id', async(req,res) =>{
+    const id = req.params.id;
+    const query = {_id: new ObjectId(id)}
+    const result = await plantsCollection.findOne(query)
+    res.send(result)
+})
     // Generate jwt token
     app.post('/jwt',async (req, res) => {
       const email = req.body
