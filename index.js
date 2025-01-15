@@ -85,12 +85,74 @@ async function run() {
         res.send(result)
     })
 
+//     plants specific field update====
+app.patch('/plants/quantity/:id',verifyToken, async(req, res) => {
+        const id = req.params.id;
+        // update field comes from client by this name as quantityToUpdate====
+        const {quantityToUpdate} = req.body;
+        const filter = {_id: new ObjectId(id)}
+        const updateDoc = {
+                $inc: {
+                        quantity: -quantityToUpdate
+                }
+        }
+        const result = await plantsCollection.updateOne(filter, updateDoc)
+        res.send(result)
+})
+
     // save order with customer details and seller email
     app.post('/orders', verifyToken, async (req,res) => {
         const orderInfo = req.body;
         const result = await ordersCollection.insertOne(orderInfo)
         res.send(result)
     })
+
+
+//     get order for specific customer===
+
+app.get('/customer-orders/:email', verifyToken,async (req,res) =>{
+        const email = req.params.email;
+        const query = {"customer.email" : email}
+        const result = await ordersCollection.aggregate([
+        {
+                $match: query //first match filed to aggregate with email or user..
+        },
+        {
+                $addFields: {
+                        plantId: { $toObjectId: '$plantId'} // convert string plantId to database objectId with add fields to set covertedid to db named plantId
+                }
+
+        },
+        {
+                $lookup: {//go to desired db as loolup 
+                        from: 'plants', //search to db named plants
+                        localField: 'plantId',//field that local id like orders plantid
+                        foreignField : '_id',//searching id that to plants db by local id - plantid
+                        as: 'plants' //return as array named plants
+                }
+
+        },
+        {
+                $unwind: "$plants"// convert plants array to objcect in order db with unwind
+        },
+        {
+                $addFields: { //below fields are added to converted plants object
+                        name: '$plants.name',
+                        image:'$plants.image',
+                        category: '$plants.category'
+                }
+        },
+        {
+                $project: {//delet plants whole object by project operator
+                        plants: 0 //0 menas delete from db
+                }
+        }
+        
+        ])
+        .toArray()
+        res.send(result) 
+        
+})
 
     // get all plants
     app.get('/plants', async (req,res) => {
