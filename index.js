@@ -53,6 +53,7 @@ async function run() {
   try {
     const plantUserCollection = client.db('plantStore').collection('plant-user')
     const plantsCollection = client.db('plantStore').collection('plants')
+    const ordersCollection = client.db('plantStore').collection('orders')
 
 
     app.post('/users/:email',async(req,res) => {
@@ -81,6 +82,13 @@ async function run() {
     app.post('/plants', verifyToken, async (req,res) => {
         const plants = req.body;
         const result = await plantsCollection.insertOne(plants)
+        res.send(result)
+    })
+
+    // save order with customer details and seller email
+    app.post('/orders', verifyToken, async (req,res) => {
+        const orderInfo = req.body;
+        const result = await ordersCollection.insertOne(orderInfo)
         res.send(result)
     })
 
