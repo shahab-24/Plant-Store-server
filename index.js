@@ -82,6 +82,25 @@ async function run() {
       res.send(result);
     });
 
+
+//     become seller ===
+app.patch('/users/:email', verifyToken, async(req, res) => {
+        const email = req.params.email
+
+        const query = {email}//email set to query for finding by query into db
+        
+        const user = await plantUserCollection.findOne(query) //find user by user email with query
+        if(!user || user?.status === "Requested") return res.status(400).send('You have requested... please wait for admin approval')
+
+        const updateDoc = {
+                $set: {
+                        status: 'Requested'//user role status set to requested 
+                }
+        }
+        const result = await plantUserCollection.updateOne(query, updateDoc)
+        res.send(result)
+})
+
     // post plants
     app.post("/plants", verifyToken, async (req, res) => {
       const plants = req.body;
@@ -89,7 +108,7 @@ async function run() {
       res.send(result);
     });
 
-    //     plants specific field update====
+    //     plants specific field update==== reusable route for quantity decrease and add===
     app.patch("/plants/quantity/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       // update field comes from client by this name as quantityToUpdate====
@@ -100,21 +119,17 @@ async function run() {
         $inc: {
           quantity: -quantityToUpdate,
         },
-
-        
       };
 
-      if(status === "increase"){
+      if (status === "increase") {
         // quantity added to previous value====
         updateDoc = {
-                $inc: {
-                  quantity: quantityToUpdate,
-                },
-              };
-        
+          $inc: {
+            quantity: quantityToUpdate,
+          },
+        };
       }
 
-   
       const result = await plantsCollection.updateOne(filter, updateDoc);
       res.send(result);
     });
@@ -178,7 +193,7 @@ async function run() {
       const query = { _id: new ObjectId(id) };
       const order = await ordersCollection.findOne(query);
 
-      if (order?.status === "delivered")
+      if (order?.status === "Delivered")
         return res.status(409).send("cant cancellation after delivered");
 
       const result = await ordersCollection.deleteOne(query);
