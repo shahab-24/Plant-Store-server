@@ -93,13 +93,28 @@ async function run() {
     app.patch("/plants/quantity/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       // update field comes from client by this name as quantityToUpdate====
-      const { quantityToUpdate } = req.body;
+      const { quantityToUpdate, status } = req.body;
       const filter = { _id: new ObjectId(id) };
-      const updateDoc = {
+      let updateDoc = {
+        // qantity decreases from it default value after orders
         $inc: {
           quantity: -quantityToUpdate,
         },
+
+        
       };
+
+      if(status === "increase"){
+        // quantity added to previous value====
+        updateDoc = {
+                $inc: {
+                  quantity: quantityToUpdate,
+                },
+              };
+        
+      }
+
+   
       const result = await plantsCollection.updateOne(filter, updateDoc);
       res.send(result);
     });
@@ -161,7 +176,7 @@ async function run() {
     app.delete("/orders/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
-      const order = await ordersCollection.findOne(query)
+      const order = await ordersCollection.findOne(query);
 
       if (order?.status === "delivered")
         return res.status(409).send("cant cancellation after delivered");
