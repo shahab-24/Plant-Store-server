@@ -62,7 +62,9 @@ async function run() {
     const plantsCollection = client.db("plantStore").collection("plants");
     const ordersCollection = client.db("plantStore").collection("orders");
 
-    // get all users without logged in admin
+
+
+    // get all users with hiding logged in admin
     app.get("/all-users/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
       const query = { email: { $ne: email } };
@@ -70,13 +72,12 @@ async function run() {
       res.send(result);
     });
 
+
 //     user created for the first with checking whether user exist or not==
     app.post("/users/:email", async (req, res) => {
       const email = req.params.email;
-
       // to query by email
       const query = { email };
-
       // take user from body
       const user = req.body;
       const isExist = await plantUserCollection.findOne(query);
@@ -91,12 +92,27 @@ async function run() {
       res.send(result);
     });
 
+//     update role
+app.patch('/users/role/:email', verifyToken,async (req,res) => {
+        const email = req.params.email;
+        const {role} = req.body;//takes role from clients body
+        const filter = {email}
+        const updateDoc = {
+                $set : {
+                        role, status: 'Verified'
+                }
+        }
+        const result = await plantUserCollection.updateOne(filter, updateDoc)
+        res.send(result)
+})
+
+
+
+
     //     become seller ===
     app.patch("/users/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
-
       const query = { email }; //email set to query for finding by query into db
-
       const user = await plantUserCollection.findOne(query); //find user by user email with query
       if (!user || user?.status === "Requested")
         return res
@@ -112,18 +128,24 @@ async function run() {
       res.send(result);
     });
 
+
+
     // all users get for manages users page===
     app.get("/users/role/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
       const result = await plantUserCollection.findOne({ email });
       res.send({ role: result?.role }); //send client role of result as role
     });
+
+
     // post plants
     app.post("/plants", verifyToken, async (req, res) => {
       const plants = req.body;
       const result = await plantsCollection.insertOne(plants);
       res.send(result);
     });
+
+
 
     //     plants specific field update==== reusable route for quantity decrease and add===
     app.patch("/plants/quantity/:id", verifyToken, async (req, res) => {
@@ -137,7 +159,6 @@ async function run() {
           quantity: -quantityToUpdate,
         },
       };
-
       if (status === "increase") {
         // quantity added to previous value====
         updateDoc = {
@@ -146,10 +167,10 @@ async function run() {
           },
         };
       }
-
       const result = await plantsCollection.updateOne(filter, updateDoc);
       res.send(result);
     });
+
 
     // save order with customer details and seller email
     app.post("/orders", verifyToken, async (req, res) => {
@@ -158,8 +179,9 @@ async function run() {
       res.send(result);
     });
 
-    //     get order for specific customer===
 
+
+    //     get order for specific customer===
     app.get("/customer-orders/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
       const query = { "customer.email": email };
@@ -204,24 +226,27 @@ async function run() {
       res.send(result);
     });
 
+
     //     order delete by id==
     app.delete("/orders/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const order = await ordersCollection.findOne(query);
-
       if (order?.status === "Delivered")
         return res.status(409).send("cant cancellation after delivered");
-
       const result = await ordersCollection.deleteOne(query);
       res.send(result);
     });
+
+
 
     // get all plants
     app.get("/plants", async (req, res) => {
       const result = await plantsCollection.find().toArray();
       res.send(result);
     });
+
+
 
     // get a plant by id
     app.get("/plants/:id", async (req, res) => {
@@ -230,6 +255,8 @@ async function run() {
       const result = await plantsCollection.findOne(query);
       res.send(result);
     });
+
+
     // Generate jwt token
     app.post("/jwt", async (req, res) => {
       const email = req.body;
@@ -244,6 +271,7 @@ async function run() {
         })
         .send({ success: true });
     });
+
 
     // Logout
     app.get("/logout", async (req, res) => {
