@@ -62,18 +62,33 @@ async function run() {
     const plantsCollection = client.db("plantStore").collection("plants");
     const ordersCollection = client.db("plantStore").collection("orders");
 
+//     verifyAdmin middleweare========================================
+const verifyAdmin = async(req,res,next) =>{
+        const email = req.user.email;
+        const query = {email}
+        const result = await plantUserCollection.findOne(query)
+        if(!result || result?.role !== 'admin' ) return res.status(403).send({message:'forbidden access'})
+                next()
+}
 
+// verifySeller middlewear=============================================
+const verifySeller = async(req,res,next) =>{
+        const email = req.user.email;
+        const query = {email}
+        const result = await plantUserCollection.findOne(query)
+        if(!result || result?.role !== 'seller' ) return res.status(403).send({message:'forbidden access'})
+                next()
+}
 
-    // get all users with hiding logged in admin
-    app.get("/all-users/:email", verifyToken, async (req, res) => {
+    // get all users with hiding logged in admin========================
+    app.get("/all-users/:email", verifyToken, verifyAdmin, async (req, res) => {
       const email = req.params.email;
       const query = { email: { $ne: email } };
       const result = await plantUserCollection.find(query).toArray();
       res.send(result);
     });
 
-
-//     user created for the first with checking whether user exist or not==
+    //     user created for the first with checking whether user exist or not==
     app.post("/users/:email", async (req, res) => {
       const email = req.params.email;
       // to query by email
@@ -92,22 +107,20 @@ async function run() {
       res.send(result);
     });
 
-//     update role
-app.patch('/users/role/:email', verifyToken,async (req,res) => {
-        const email = req.params.email;
-        const {role} = req.body;//takes role from clients body
-        const filter = {email}
-        const updateDoc = {
-                $set : {
-                        role, status: 'Verified'
-                }
-        }
-        const result = await plantUserCollection.updateOne(filter, updateDoc)
-        res.send(result)
-})
-
-
-
+    //     update role
+    app.patch("/users/role/:email", verifyToken, verifyAdmin, async (req, res) => {
+      const email = req.params.email;
+      const { role } = req.body; //takes role from clients body
+      const filter = { email };
+      const updateDoc = {
+        $set: {
+          role,
+          status: "Verified",
+        },
+      };
+      const result = await plantUserCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
 
     //     become seller ===
     app.patch("/users/:email", verifyToken, async (req, res) => {
@@ -128,8 +141,6 @@ app.patch('/users/role/:email', verifyToken,async (req,res) => {
       res.send(result);
     });
 
-
-
     // all users get for manages users page===
     app.get("/users/role/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
@@ -137,15 +148,12 @@ app.patch('/users/role/:email', verifyToken,async (req,res) => {
       res.send({ role: result?.role }); //send client role of result as role
     });
 
-
     // post plants
-    app.post("/plants", verifyToken, async (req, res) => {
+    app.post("/plants", verifyToken, verifySeller, async (req, res) => {
       const plants = req.body;
       const result = await plantsCollection.insertOne(plants);
       res.send(result);
     });
-
-
 
     //     plants specific field update==== reusable route for quantity decrease and add===
     app.patch("/plants/quantity/:id", verifyToken, async (req, res) => {
@@ -171,15 +179,12 @@ app.patch('/users/role/:email', verifyToken,async (req,res) => {
       res.send(result);
     });
 
-
     // save order with customer details and seller email
     app.post("/orders", verifyToken, async (req, res) => {
       const orderInfo = req.body;
       const result = await ordersCollection.insertOne(orderInfo);
       res.send(result);
     });
-
-
 
     //     get order for specific customer===
     app.get("/customer-orders/:email", verifyToken, async (req, res) => {
@@ -226,9 +231,8 @@ app.patch('/users/role/:email', verifyToken,async (req,res) => {
       res.send(result);
     });
 
-
     //     order delete by id==
-    app.delete("/orders/:id", verifyToken, async (req, res) => {
+    app.delete("/orders/:id", verifyToken, verifySeller, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const order = await ordersCollection.findOne(query);
@@ -238,15 +242,11 @@ app.patch('/users/role/:email', verifyToken,async (req,res) => {
       res.send(result);
     });
 
-
-
     // get all plants
     app.get("/plants", async (req, res) => {
       const result = await plantsCollection.find().toArray();
       res.send(result);
     });
-
-
 
     // get a plant by id
     app.get("/plants/:id", async (req, res) => {
@@ -255,7 +255,6 @@ app.patch('/users/role/:email', verifyToken,async (req,res) => {
       const result = await plantsCollection.findOne(query);
       res.send(result);
     });
-
 
     // Generate jwt token
     app.post("/jwt", async (req, res) => {
@@ -271,7 +270,6 @@ app.patch('/users/role/:email', verifyToken,async (req,res) => {
         })
         .send({ success: true });
     });
-
 
     // Logout
     app.get("/logout", async (req, res) => {
