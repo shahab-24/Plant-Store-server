@@ -62,23 +62,25 @@ async function run() {
     const plantsCollection = client.db("plantStore").collection("plants");
     const ordersCollection = client.db("plantStore").collection("orders");
 
-//     verifyAdmin middleweare========================================
-const verifyAdmin = async(req,res,next) =>{
-        const email = req.user.email;
-        const query = {email}
-        const result = await plantUserCollection.findOne(query)
-        if(!result || result?.role !== 'admin' ) return res.status(403).send({message:'forbidden access'})
-                next()
-}
+    //     verifyAdmin middleweare========================================
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.user.email;
+      const query = { email };
+      const result = await plantUserCollection.findOne(query);
+      if (!result || result?.role !== "admin")
+        return res.status(403).send({ message: "forbidden access" });
+      next();
+    };
 
-// verifySeller middlewear=============================================
-const verifySeller = async(req,res,next) =>{
-        const email = req.user.email;
-        const query = {email}
-        const result = await plantUserCollection.findOne(query)
-        if(!result || result?.role !== 'seller' ) return res.status(403).send({message:'forbidden access'})
-                next()
-}
+    // verifySeller middlewear=============================================
+    const verifySeller = async (req, res, next) => {
+      const email = req.user.email;
+      const query = { email };
+      const result = await plantUserCollection.findOne(query);
+      if (!result || result?.role !== "seller")
+        return res.status(403).send({ message: "forbidden access" });
+      next();
+    };
 
     // get all users with hiding logged in admin========================
     app.get("/all-users/:email", verifyToken, verifyAdmin, async (req, res) => {
@@ -108,19 +110,24 @@ const verifySeller = async(req,res,next) =>{
     });
 
     //     update role
-    app.patch("/users/role/:email", verifyToken, verifyAdmin, async (req, res) => {
-      const email = req.params.email;
-      const { role } = req.body; //takes role from clients body
-      const filter = { email };
-      const updateDoc = {
-        $set: {
-          role,
-          status: "Verified",
-        },
-      };
-      const result = await plantUserCollection.updateOne(filter, updateDoc);
-      res.send(result);
-    });
+    app.patch(
+      "/users/role/:email",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const email = req.params.email;
+        const { role } = req.body; //takes role from clients body
+        const filter = { email };
+        const updateDoc = {
+          $set: {
+            role,
+            status: "Verified",
+          },
+        };
+        const result = await plantUserCollection.updateOne(filter, updateDoc);
+        res.send(result);
+      }
+    );
 
     //     become seller ===
     app.patch("/users/:email", verifyToken, async (req, res) => {
@@ -148,19 +155,26 @@ const verifySeller = async(req,res,next) =>{
       res.send({ role: result?.role }); //send client role of result as role
     });
 
-
-//     get all plants added by seller====================================
-app.get('/plants/seller', verifyToken, verifySeller, async (req,res) => {
-        const email = req.user.email;
-        const query = {'seller.email': email}
-        const result = await plantsCollection.find(query).toArray()
-        res.send(result)
-})
+    //     get all plants added by seller====================================
+    app.get("/plants/seller", verifyToken, verifySeller, async (req, res) => {
+      const email = req.user.email;
+      const query = { "seller.email": email };
+      const result = await plantsCollection.find(query).toArray();
+      res.send(result);
+    });
 
     // post plants
     app.post("/plants", verifyToken, verifySeller, async (req, res) => {
       const plants = req.body;
       const result = await plantsCollection.insertOne(plants);
+      res.send(result);
+    });
+
+    //     plants delete by seller by id===================================
+    app.delete("/plants/:id", verifyToken, verifySeller, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await plantsCollection.deleteOne(query);
       res.send(result);
     });
 
