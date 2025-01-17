@@ -62,6 +62,15 @@ async function run() {
     const plantsCollection = client.db("plantStore").collection("plants");
     const ordersCollection = client.db("plantStore").collection("orders");
 
+    // get all users without logged in admin
+    app.get("/all-users/:email", verifyToken, async (req, res) => {
+      const email = req.params.email;
+      const query = { email: { $ne: email } };
+      const result = await plantUserCollection.find(query).toArray();
+      res.send(result);
+    });
+
+//     user created for the first with checking whether user exist or not==
     app.post("/users/:email", async (req, res) => {
       const email = req.params.email;
 
@@ -82,25 +91,33 @@ async function run() {
       res.send(result);
     });
 
+    //     become seller ===
+    app.patch("/users/:email", verifyToken, async (req, res) => {
+      const email = req.params.email;
 
-//     become seller ===
-app.patch('/users/:email', verifyToken, async(req, res) => {
-        const email = req.params.email
+      const query = { email }; //email set to query for finding by query into db
 
-        const query = {email}//email set to query for finding by query into db
-        
-        const user = await plantUserCollection.findOne(query) //find user by user email with query
-        if(!user || user?.status === "Requested") return res.status(400).send('You have requested... please wait for admin approval')
+      const user = await plantUserCollection.findOne(query); //find user by user email with query
+      if (!user || user?.status === "Requested")
+        return res
+          .status(400)
+          .send("You have requested... please wait for admin approval");
 
-        const updateDoc = {
-                $set: {
-                        status: 'Requested'//user role status set to requested 
-                }
-        }
-        const result = await plantUserCollection.updateOne(query, updateDoc)
-        res.send(result)
-})
+      const updateDoc = {
+        $set: {
+          status: "Requested", //user role status set to requested
+        },
+      };
+      const result = await plantUserCollection.updateOne(query, updateDoc);
+      res.send(result);
+    });
 
+    // all users get for manages users page===
+    app.get("/users/role/:email", verifyToken, async (req, res) => {
+      const email = req.params.email;
+      const result = await plantUserCollection.findOne({ email });
+      res.send({ role: result?.role }); //send client role of result as role
+    });
     // post plants
     app.post("/plants", verifyToken, async (req, res) => {
       const plants = req.body;
