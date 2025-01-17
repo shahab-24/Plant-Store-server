@@ -148,6 +148,15 @@ const verifySeller = async(req,res,next) =>{
       res.send({ role: result?.role }); //send client role of result as role
     });
 
+
+//     get all plants added by seller====================================
+app.get('/plants/seller', verifyToken, verifySeller, async (req,res) => {
+        const email = req.user.email;
+        const query = {'seller.email': email}
+        const result = await plantsCollection.find(query).toArray()
+        res.send(result)
+})
+
     // post plants
     app.post("/plants", verifyToken, verifySeller, async (req, res) => {
       const plants = req.body;
